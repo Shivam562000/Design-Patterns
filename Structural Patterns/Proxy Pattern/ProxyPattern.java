@@ -1,4 +1,4 @@
-package Structural Patterns;
+//package Structural Patterns;
 
 public class ProxyPattern {
     
