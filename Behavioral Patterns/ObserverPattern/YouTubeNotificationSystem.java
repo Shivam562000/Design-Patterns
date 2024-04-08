@@ -1,17 +1,37 @@
 import java.util.ArrayList;
 import java.util.List;
 
-// Interface for notification handling
-interface NotificationHandler {
-    void handleNotification(Notification notification);
+// Interface for Observer pattern
+interface Observer {
+    void update(Notification notification);
 }
 
-// Interface for logging
+// Interface for Observable pattern
+interface Observable {
+    void subscribe(Observer observer);
+    void unsubscribe(Observer observer);
+    void notifySubscribers(Notification notification);
+}
+
+// Notification class
+class Notification {
+    private String content;
+
+    public Notification(String content) {
+        this.content = content;
+    }
+
+    public String getContent() {
+        return content;
+    }
+}
+
+// Logger interface
 interface Logger {
     void log(String message);
 }
 
-// Logger implementation
+// Console logger implementation
 class ConsoleLogger implements Logger {
     @Override
     public void log(String message) {
@@ -19,11 +39,11 @@ class ConsoleLogger implements Logger {
     }
 }
 
-// Channel class handling channel-related operations
-class Channel implements NotificationHandler {
+// Channel class implementing Observable
+class Channel implements Observable {
     private String channelId;
     private String channelName;
-    private List<Subscriber> subscribers;
+    private List<Observer> subscribers;
     private Logger logger;
 
     public Channel(String channelId, String channelName, Logger logger) {
@@ -33,19 +53,22 @@ class Channel implements NotificationHandler {
         this.logger = logger;
     }
 
-    public void subscribe(Subscriber subscriber) {
-        subscribers.add(subscriber);
-        subscriber.update(new Notification("Subscribed to channel: " + channelName));
-        logger.log("Subscriber " + subscriber.getSubscriberName() + " subscribed to channel: " + channelName);
+    @Override
+    public void subscribe(Observer observer) {
+        subscribers.add(observer);
+        observer.update(new Notification("Subscribed to channel: " + channelName));
+        logger.log("Subscriber " + ((Subscriber)observer).getSubscriberName() + " subscribed to channel: " + channelName);
     }
 
-    public void unsubscribe(Subscriber subscriber) {
-        subscribers.remove(subscriber);
-        logger.log("Subscriber " + subscriber.getSubscriberName() + " unsubscribed from channel: " + channelName);
+    @Override
+    public void unsubscribe(Observer observer) {
+        subscribers.remove(observer);
+        logger.log("Subscriber " + ((Subscriber)observer).getSubscriberName() + " unsubscribed from channel: " + channelName);
     }
 
+    @Override
     public void notifySubscribers(Notification notification) {
-        for (Subscriber subscriber : subscribers) {
+        for (Observer subscriber : subscribers) {
             subscriber.update(notification);
         }
         logger.log("Notification sent to subscribers of channel: " + channelName);
@@ -60,13 +83,12 @@ class Channel implements NotificationHandler {
         return channelName;
     }
 
-    @Override
     public void handleNotification(Notification notification) {
         notifySubscribers(notification);
     }
 }
 
-// Subscriber class handling subscriber-related operations
+// Subscriber class implementing Observer
 class Subscriber implements Observer {
     private String subscriberId;
     private String subscriberName;
@@ -95,7 +117,7 @@ class Subscriber implements Observer {
     }
 
     public void displaySubscribedChannels() {
-        //System.out.println("Channels subscribed by " + subscriberName + " (ID: " + subscriberId + "):");
+        System.out.println("Channels subscribed by " + subscriberName + " (ID: " + subscriberId + "):");
         for (Channel channel : subscribedChannels) {
             System.out.println("- " + channel.getChannelName());
         }
@@ -103,7 +125,6 @@ class Subscriber implements Observer {
 
     @Override
     public void update(Notification notification) {
-        //System.out.println("Notification received by " + subscriberName + ": " + notification.getContent());
         logger.log("Notification received by " + subscriberName + ": " + notification.getContent());
     }
 
@@ -112,7 +133,7 @@ class Subscriber implements Observer {
     }
 }
 
-// YouTubeNotificationSystem class
+// Main class
 public class YouTubeNotificationSystem {
     public static void main(String[] args) {
         // Create logger
@@ -136,7 +157,7 @@ public class YouTubeNotificationSystem {
         subscriber2.displaySubscribedChannels();
 
         // Channels uploading new content
-        channel1.uploadNewContent("New video on Channel 1");
-        channel2.uploadNewContent("New video on Channel 2");
+        channel1.uploadNewContent("New video on Channel 1 - YT Video");
+        channel2.uploadNewContent("New video on Channel 2 - Hotstar new movie");
     }
 }
