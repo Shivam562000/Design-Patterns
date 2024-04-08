@@ -1,96 +1,139 @@
 import java.util.ArrayList;
 import java.util.List;
 
-// Interface for Observer pattern
-interface Observer {
-    void update(Notification notification);
+// Interface for notification handling
+interface NotificationHandler {
+    void handleNotification(Notification notification);
 }
 
-// Interface for Observable pattern
-interface Observable {
-    void subscribe(Observer observer);
-    void unsubscribe(Observer observer);
-    void notifySubscribers(Notification notification);
+// Interface for logging
+interface Logger {
+    void log(String message);
 }
 
-// Notification class
-class Notification {
-    private String content;
-
-    public Notification(String content) {
-        this.content = content;
-    }
-
-    public String getContent() {
-        return content;
+// Logger implementation
+class ConsoleLogger implements Logger {
+    @Override
+    public void log(String message) {
+        System.out.println(message);
     }
 }
 
-// Channel class implementing Observable
-class Channel implements Observable {
+// Channel class handling channel-related operations
+class Channel implements NotificationHandler {
     private String channelId;
     private String channelName;
-    private List<Observer> subscribers;
+    private List<Subscriber> subscribers;
+    private Logger logger;
 
-    public Channel(String channelId, String channelName) {
+    public Channel(String channelId, String channelName, Logger logger) {
         this.channelId = channelId;
         this.channelName = channelName;
         this.subscribers = new ArrayList<>();
+        this.logger = logger;
     }
 
-    @Override
-    public void subscribe(Observer observer) {
-        subscribers.add(observer);
+    public void subscribe(Subscriber subscriber) {
+        subscribers.add(subscriber);
+        subscriber.update(new Notification("Subscribed to channel: " + channelName));
+        logger.log("Subscriber " + subscriber.getSubscriberName() + " subscribed to channel: " + channelName);
     }
 
-    @Override
-    public void unsubscribe(Observer observer) {
-        subscribers.remove(observer);
+    public void unsubscribe(Subscriber subscriber) {
+        subscribers.remove(subscriber);
+        logger.log("Subscriber " + subscriber.getSubscriberName() + " unsubscribed from channel: " + channelName);
     }
 
-    @Override
     public void notifySubscribers(Notification notification) {
-        for (Observer subscriber : subscribers) {
+        for (Subscriber subscriber : subscribers) {
             subscriber.update(notification);
         }
+        logger.log("Notification sent to subscribers of channel: " + channelName);
     }
 
     public void uploadNewContent(String content) {
-        Notification notification = new Notification(content);
+        Notification notification = new Notification("New video on " + channelName + ": " + content);
+        notifySubscribers(notification);
+    }
+
+    public String getChannelName() {
+        return channelName;
+    }
+
+    @Override
+    public void handleNotification(Notification notification) {
         notifySubscribers(notification);
     }
 }
 
-// Subscriber class implementing Observer
+// Subscriber class handling subscriber-related operations
 class Subscriber implements Observer {
     private String subscriberId;
     private String subscriberName;
+    private List<Channel> subscribedChannels;
+    private Logger logger;
 
-    public Subscriber(String subscriberId, String subscriberName) {
+    public Subscriber(String subscriberId, String subscriberName, Logger logger) {
         this.subscriberId = subscriberId;
         this.subscriberName = subscriberName;
+        this.subscribedChannels = new ArrayList<>();
+        this.logger = logger;
+    }
+
+    public void subscribeToChannel(Channel channel) {
+        if (!subscribedChannels.contains(channel)) {
+            subscribedChannels.add(channel);
+            channel.subscribe(this);
+        }
+    }
+
+    public void unsubscribeFromChannel(Channel channel) {
+        if (subscribedChannels.contains(channel)) {
+            subscribedChannels.remove(channel);
+            channel.unsubscribe(this);
+        }
+    }
+
+    public void displaySubscribedChannels() {
+        //System.out.println("Channels subscribed by " + subscriberName + " (ID: " + subscriberId + "):");
+        for (Channel channel : subscribedChannels) {
+            System.out.println("- " + channel.getChannelName());
+        }
     }
 
     @Override
     public void update(Notification notification) {
-        System.out.println("Notification received by " + subscriberName + ": " + notification.getContent());
+        //System.out.println("Notification received by " + subscriberName + ": " + notification.getContent());
+        logger.log("Notification received by " + subscriberName + ": " + notification.getContent());
+    }
+
+    public String getSubscriberName() {
+        return subscriberName;
     }
 }
 
+// YouTubeNotificationSystem class
 public class YouTubeNotificationSystem {
     public static void main(String[] args) {
+        // Create logger
+        Logger logger = new ConsoleLogger();
+
         // Create channels
-        Channel channel1 = new Channel("1", "Channel 1");
-        Channel channel2 = new Channel("2", "Channel 2");
+        Channel channel1 = new Channel("1", "Channel 1", logger);
+        Channel channel2 = new Channel("2", "Channel 2", logger);
 
         // Create subscribers
-        Subscriber subscriber1 = new Subscriber("101", "Subscriber 1");
-        Subscriber subscriber2 = new Subscriber("102", "Subscriber 2");
+        Subscriber subscriber1 = new Subscriber("101", "Subscriber 1", logger);
+        Subscriber subscriber2 = new Subscriber("102", "Subscriber 2", logger);
 
         // Subscribers subscribing to channels
-        channel1.subscribe(subscriber1);
-        channel2.subscribe(subscriber1);
-        channel2.subscribe(subscriber2);
+        subscriber1.subscribeToChannel(channel1);
+        subscriber1.subscribeToChannel(channel2);
+        subscriber2.subscribeToChannel(channel2);
+
+        // Display subscribed channels
+        subscriber1.displaySubscribedChannels();
+        subscriber2.displaySubscribedChannels();
 
         // Channels uploading new content
         channel1.uploadNewContent("New video on Channel 1");
